@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ShopSmart AI Assistant</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="page-wrapper">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-logo">
+                🛒 ShopSmart
+            </div>
+            <div class="sidebar-menu">
+                <div class="menu-item active">💬 AI Assistant</div>
+                <div class="menu-item">📦 Track Order</div>
+                <div class="menu-item">🔄 Returns</div>
+                <div class="menu-item">⭐ Reviews</div>
+                <div class="menu-item">📞 Support</div>
+            </div>
+            <div class="sidebar-footer">
+                <div class="powered-by">⚡ Powered by Groq AI</div>
+                <div class="model-info">Model: Llama 3.3</div>
+                <div class="model-info">Sentiment: Azure AI</div>
+            </div>
+        </div>
+
+        <!-- Main Chat Area -->
+        <div class="chat-wrapper">
+            <!-- Header -->
+            <div class="chat-header">
+                <div class="header-left">
+                    <div class="bot-avatar">🤖</div>
+                    <div class="header-info">
+                        <h2>ShopSmart Assistant</h2>
+                        <span class="status">
+                            <span class="status-dot"></span>
+                            Online — Ready to help
+                        </span>
+                    </div>
+                </div>
+                <div class="header-right">
+                    <button class="clear-btn" onclick="clearChat()">
+                        🗑️ Clear Chat
+                    </button>
+                </div>
+            </div>
+
+            <!-- Chat Messages -->
+            <div class="chat-box" id="chatBox">
+                <div class="message-wrapper bot-wrapper">
+                    <div class="avatar">🤖</div>
+                    <div class="message bot-message">
+                        👋 Hello! Welcome to <strong>ShopSmart India!</strong>
+                        <br><br>
+                        I can help you with:
+                        <br>🛍️ Product recommendations
+                        <br>📦 Order tracking
+                        <br>🔄 Returns & refunds
+                        <br>💰 Best deals & offers
+                        <br><br>
+                        How can I assist you today?
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Questions -->
+            <div class="quick-questions">
+                <button onclick="quickAsk('Suggest a phone under ₹15000')">
+                    📱 Phone under ₹15K
+                </button>
+                <button onclick="quickAsk('Track my order')">
+                    📦 Track Order
+                </button>
+                <button onclick="quickAsk('I want to return my product')">
+                    🔄 Return Product
+                </button>
+                <button onclick="quickAsk('Best deals today')">
+                    💰 Best Deals
+                </button>
+            </div>
+
+            <!-- Input Area -->
+            <div class="chat-input">
+                <div class="input-wrapper">
+                    <input type="text" id="userInput"
+                           placeholder="Type your message here..."
+                           onkeypress="handleKey(event)"/>
+                    <button class="send-btn" onclick="sendMessage()">
+                        Send ➤
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function sendMessage() {
+            const input = document.getElementById("userInput");
+            const message = input.value.trim();
+            if (!message) return;
+
+            addMessage(message, "user");
+            input.value = "";
+            addTypingIndicator();
+
+            try {
+                const response = await fetch("/chat", {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify({message: message})
+                });
+
+                const data = await response.json();
+                removeTypingIndicator();
+
+                // Show Azure sentiment badge
+                const sentimentEmoji = {
+                    "positive": "😊 Positive",
+                    "negative": "😠 Negative",
+                    "neutral": "😐 Neutral"
+                };
+                const badge = sentimentEmoji[data.sentiment] || "😐 Neutral";
+                addSentimentBadge(badge, data.sentiment);
+
+                addMessage(data.response, "bot");
+
+            } catch (error) {
+                removeTypingIndicator();
+                addMessage("Sorry something went wrong!", "bot");
+            }
+        }
+
+        function addMessage(text, sender) {
+            const chatBox = document.getElementById("chatBox");
+            const wrapper = document.createElement("div");
+            wrapper.className = `message-wrapper ${sender}-wrapper`;
+
+            const avatar = document.createElement("div");
+            avatar.className = "avatar";
+            avatar.innerHTML = sender === "bot" ? "🤖" : "👤";
+
+            const msg = document.createElement("div");
+            msg.className = `message ${sender}-message`;
+            msg.innerHTML = text;
+
+            if (sender === "bot") {
+                wrapper.appendChild(avatar);
+                wrapper.appendChild(msg);
+            } else {
+                wrapper.appendChild(msg);
+                wrapper.appendChild(avatar);
+            }
+
+            chatBox.appendChild(wrapper);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        function addSentimentBadge(text, sentiment) {
+            const chatBox = document.getElementById("chatBox");
+            const badge = document.createElement("div");
+            badge.className = `sentiment-badge ${sentiment}`;
+            badge.innerHTML = `🔍 Azure AI Detected: ${text}`;
+            chatBox.appendChild(badge);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        function addTypingIndicator() {
+            const chatBox = document.getElementById("chatBox");
+            const wrapper = document.createElement("div");
+            wrapper.className = "message-wrapper bot-wrapper";
+            wrapper.id = "typingIndicator";
+            wrapper.innerHTML = `
+                <div class="avatar">🤖</div>
+                <div class="message bot-message typing">
+                    <span></span><span></span><span></span>
+                </div>`;
+            chatBox.appendChild(wrapper);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        function removeTypingIndicator() {
+            const indicator = document.getElementById("typingIndicator");
+            if (indicator) indicator.remove();
+        }
+
+        function quickAsk(question) {
+            document.getElementById("userInput").value = question;
+            sendMessage();
+        }
+
+        function clearChat() {
+            const chatBox = document.getElementById("chatBox");
+            chatBox.innerHTML = `
+                <div class="message-wrapper bot-wrapper">
+                    <div class="avatar">🤖</div>
+                    <div class="message bot-message">
+                        Chat cleared! How can I help you? 😊
+                    </div>
+                </div>`;
+        }
+
+        function handleKey(event) {
+            if (event.key === "Enter") sendMessage();
+        }
+    </script>
+</body>
+</html>
